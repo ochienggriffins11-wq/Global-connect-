@@ -1,0 +1,1032 @@
+import { useState, useEffect, useRef } from "react";
+
+// ─── MOCK DATA ────────────────────────────────────────────────────────────────
+const MOCK_USERS = [
+  { id: 1, name: "Amara Osei", username: "amara_osei", avatar: "AO", location: "Nairobi, KE", followers: 1204, following: 342, verified: true, online: true, bio: "Digital creator & entrepreneur 🌍", coverColor: "#1a6b3c" },
+  { id: 2, name: "Kofi Mensah", username: "kofi_m", avatar: "KM", location: "Accra, GH", followers: 892, following: 210, verified: false, online: true, bio: "Tech enthusiast | Coffee lover ☕", coverColor: "#1a3a6b" },
+  { id: 3, name: "Zara Ahmed", username: "zara_a", avatar: "ZA", location: "Lagos, NG", followers: 3410, following: 567, verified: true, online: false, bio: "Fashion | Lifestyle | Culture 🎨", coverColor: "#6b1a3a" },
+  { id: 4, name: "David Kimani", username: "d_kimani", avatar: "DK", location: "Mombasa, KE", followers: 540, following: 189, verified: false, online: true, bio: "Explorer & travel blogger ✈️", coverColor: "#6b4a1a" },
+  { id: 5, name: "Fatima Al-Rashid", username: "fatima_r", avatar: "FA", location: "Cairo, EG", followers: 2100, following: 430, verified: true, online: false, bio: "Journalist | Human rights advocate 📰", coverColor: "#3a1a6b" },
+];
+
+const CURRENT_USER = { id: 0, name: "You (Global User)", username: "global_you", avatar: "GU", location: "Global 🌐", followers: 128, following: 95, verified: false, online: true, bio: "New to Global Connect!", coverColor: "#006B52" };
+
+const MOCK_POSTS = [
+  { id: 1, userId: 1, text: "Excited to announce my new online store is LIVE! 🎉 Handcrafted African jewelry shipped worldwide. Check it out and support local artisans! 🌍✨", image: null, likes: 234, comments: 45, shares: 67, time: "2m ago", type: "post", sponsored: false, reactions: { like: 180, love: 40, wow: 14 } },
+  { id: 2, userId: 2, text: "The future of mobile payments in Africa is here. M-Pesa integration with social commerce is going to change everything. Thoughts? 💬", image: null, likes: 118, comments: 29, shares: 33, time: "15m ago", type: "post", sponsored: false, reactions: { like: 90, love: 20, wow: 8 } },
+  { id: 3, userId: 0, text: "SPONSORED AD", adTitle: "Buy Airtime & Data Bundles", adBody: "Connect with Global Connect Data Plans. 1GB – KES 50 | 5GB – KES 200 | Unlimited – KES 599/mo. Pay instantly with M-Pesa!", adCTA: "Buy Data Now", likes: 0, comments: 0, shares: 0, time: "", type: "ad", sponsored: true },
+  { id: 4, userId: 3, text: "Lagos Fashion Week was EVERYTHING! 🔥 The creativity on display was next level. Here are my top 5 looks that stole the show…", image: null, likes: 891, comments: 132, shares: 201, time: "1h ago", type: "post", sponsored: false, reactions: { like: 600, love: 250, wow: 41 } },
+  { id: 5, userId: 4, text: "Sunrise at the Kenyan coast 🌅 There's no better way to start the day. Grateful for every moment on this beautiful continent.", image: null, likes: 432, comments: 54, shares: 89, time: "3h ago", type: "post", sponsored: false, reactions: { like: 300, love: 120, wow: 12 } },
+  { id: 6, userId: 5, text: "Press freedom is not a privilege — it's a right. Solidarity with journalists across Africa and the world. #PressFreedom #Journalism", image: null, likes: 567, comments: 89, shares: 145, time: "5h ago", type: "post", sponsored: false, reactions: { like: 400, love: 100, wow: 67 } },
+];
+
+const MOCK_STORIES = [
+  { id: 1, userId: 1, viewed: false, color: "#FF6B35" },
+  { id: 2, userId: 2, viewed: false, color: "#4ECDC4" },
+  { id: 3, userId: 3, viewed: true, color: "#A855F7" },
+  { id: 4, userId: 4, viewed: false, color: "#F59E0B" },
+  { id: 5, userId: 5, viewed: true, color: "#EF4444" },
+];
+
+const MOCK_MESSAGES = [
+  { id: 1, userId: 1, lastMsg: "Hey! Did you see my new post? 😊", time: "2m", unread: 3 },
+  { id: 2, userId: 3, lastMsg: "Love your style! Let's collab 🔥", time: "1h", unread: 1 },
+  { id: 3, userId: 2, lastMsg: "Thanks for the data tip!", time: "3h", unread: 0 },
+  { id: 4, userId: 4, lastMsg: "Planning a trip to Mombasa?", time: "1d", unread: 0 },
+];
+
+const NOTIFICATIONS = [
+  { id: 1, text: "Amara Osei liked your post", time: "2m", read: false, icon: "❤️" },
+  { id: 2, text: "Kofi Mensah started following you", time: "15m", read: false, icon: "👤" },
+  { id: 3, text: "Zara Ahmed commented: 'Stunning! 😍'", time: "1h", read: false, icon: "💬" },
+  { id: 4, text: "Your ad reached 1,200 people today", time: "2h", read: true, icon: "📢" },
+  { id: 5, text: "David Kimani shared your post", time: "3h", read: true, icon: "🔁" },
+];
+
+const DATA_PLANS = [
+  { id: 1, name: "Starter", data: "500MB", price: 25, days: 1, color: "#00B894" },
+  { id: 2, name: "Daily 1GB", data: "1GB", price: 50, days: 1, color: "#0984E3" },
+  { id: 3, name: "Weekly 5GB", data: "5GB", price: 200, days: 7, color: "#6C5CE7" },
+  { id: 4, name: "Monthly 15GB", data: "15GB", price: 500, days: 30, color: "#E17055" },
+  { id: 5, name: "Unlimited", data: "Unlimited", price: 999, days: 30, color: "#FDCB6E" },
+  { id: 6, name: "Social Pack", data: "2GB (Social only)", price: 99, days: 7, color: "#FD79A8" },
+];
+
+const AD_PACKAGES = [
+  { id: 1, name: "Starter Boost", reach: "500–1,000", duration: "3 days", price: 500, color: "#00B894" },
+  { id: 2, name: "Local Visibility", reach: "1,000–5,000", duration: "7 days", price: 1500, color: "#0984E3" },
+  { id: 3, name: "Regional Reach", reach: "5,000–20,000", duration: "14 days", price: 4000, color: "#6C5CE7" },
+  { id: 4, name: "National Campaign", reach: "20,000–100,000", duration: "30 days", price: 10000, color: "#E17055" },
+  { id: 5, name: "Continental Pro", reach: "100,000+", duration: "30 days", price: 25000, color: "#FDCB6E" },
+];
+
+// ─── UTILITY ──────────────────────────────────────────────────────────────────
+const getUserById = (id) => id === 0 ? CURRENT_USER : MOCK_USERS.find(u => u.id === id) || CURRENT_USER;
+
+const AvatarBubble = ({ user, size = 40, showOnline = false }) => (
+  <div style={{ position: "relative", flexShrink: 0 }}>
+    <div style={{
+      width: size, height: size, borderRadius: "50%",
+      background: `linear-gradient(135deg, ${user.coverColor || "#006B52"}, #00D4A8)`,
+      display: "flex", alignItems: "center", justifyContent: "center",
+      color: "#fff", fontWeight: 700, fontSize: size * 0.35,
+      fontFamily: "'Sora', sans-serif", border: "2px solid rgba(255,255,255,0.2)",
+      flexShrink: 0
+    }}>{user.avatar}</div>
+    {showOnline && user.online && (
+      <div style={{ position: "absolute", bottom: 1, right: 1, width: size * 0.28, height: size * 0.28, borderRadius: "50%", background: "#00E676", border: "2px solid #0A1628" }} />
+    )}
+  </div>
+);
+
+// ─── COMPONENTS ───────────────────────────────────────────────────────────────
+
+const Navbar = ({ activeTab, setActiveTab, notifCount, msgCount, setModal }) => {
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchVal, setSearchVal] = useState("");
+  const tabs = [
+    { id: "feed", icon: "⊞", label: "Feed" },
+    { id: "explore", icon: "🔍", label: "Explore" },
+    { id: "reels", icon: "▶", label: "Reels" },
+    { id: "marketplace", icon: "🛒", label: "Market" },
+    { id: "groups", icon: "👥", label: "Groups" },
+  ];
+
+  return (
+    <nav style={{
+      position: "fixed", top: 0, left: 0, right: 0, zIndex: 1000,
+      background: "rgba(8,20,40,0.97)", backdropFilter: "blur(20px)",
+      borderBottom: "1px solid rgba(0,212,168,0.15)",
+      display: "flex", alignItems: "center", padding: "0 16px", height: 56,
+      gap: 8
+    }}>
+      {/* Logo */}
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginRight: 8, flexShrink: 0 }} onClick={() => setActiveTab("feed")} className="cursor-pointer">
+        <div style={{
+          width: 34, height: 34, borderRadius: 10,
+          background: "linear-gradient(135deg, #00D4A8, #006B52)",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          fontSize: 18, cursor: "pointer"
+        }}>🌐</div>
+        <span style={{ color: "#00D4A8", fontWeight: 800, fontSize: 15, fontFamily: "'Sora',sans-serif", letterSpacing: -0.5, display: window.innerWidth > 500 ? "block" : "none" }}>GLOBAL<span style={{ color: "#fff" }}>CONNECT</span></span>
+      </div>
+
+      {/* Search */}
+      <div style={{ flex: 1, maxWidth: 240, position: "relative" }}>
+        <input
+          value={searchVal} onChange={e => setSearchVal(e.target.value)}
+          placeholder="Search people, posts…"
+          style={{
+            width: "100%", height: 34, borderRadius: 20, border: "1px solid rgba(0,212,168,0.25)",
+            background: "rgba(255,255,255,0.06)", color: "#fff", padding: "0 16px 0 36px",
+            fontSize: 13, outline: "none", fontFamily: "'Sora',sans-serif",
+          }}
+        />
+        <span style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", opacity: 0.5, fontSize: 14 }}>🔍</span>
+      </div>
+
+      {/* Nav tabs — desktop */}
+      <div style={{ display: "flex", gap: 2, flex: 1, justifyContent: "center" }}>
+        {tabs.map(t => (
+          <button key={t.id} onClick={() => setActiveTab(t.id)} style={{
+            background: activeTab === t.id ? "rgba(0,212,168,0.15)" : "transparent",
+            border: "none", color: activeTab === t.id ? "#00D4A8" : "rgba(255,255,255,0.5)",
+            padding: "6px 10px", borderRadius: 8, cursor: "pointer", fontSize: 11,
+            fontFamily: "'Sora',sans-serif", fontWeight: 600,
+            display: "flex", flexDirection: "column", alignItems: "center", gap: 2,
+            borderBottom: activeTab === t.id ? "2px solid #00D4A8" : "2px solid transparent",
+            transition: "all 0.2s"
+          }}>
+            <span style={{ fontSize: 16 }}>{t.icon}</span>
+            <span style={{ display: window.innerWidth > 640 ? "block" : "none" }}>{t.label}</span>
+          </button>
+        ))}
+      </div>
+
+      {/* Right icons */}
+      <div style={{ display: "flex", gap: 6, alignItems: "center", flexShrink: 0 }}>
+        {/* Notifications */}
+        <button onClick={() => setModal("notifications")} style={{ position: "relative", background: "rgba(255,255,255,0.06)", border: "none", width: 36, height: 36, borderRadius: "50%", cursor: "pointer", color: "#fff", fontSize: 16 }}>
+          🔔
+          {notifCount > 0 && <span style={{ position: "absolute", top: 2, right: 2, background: "#FF4757", color: "#fff", fontSize: 9, fontWeight: 700, borderRadius: 8, padding: "1px 4px", fontFamily: "'Sora',sans-serif" }}>{notifCount}</span>}
+        </button>
+        {/* Messages */}
+        <button onClick={() => setActiveTab("messages")} style={{ position: "relative", background: "rgba(255,255,255,0.06)", border: "none", width: 36, height: 36, borderRadius: "50%", cursor: "pointer", color: "#fff", fontSize: 16 }}>
+          💬
+          {msgCount > 0 && <span style={{ position: "absolute", top: 2, right: 2, background: "#FF4757", color: "#fff", fontSize: 9, fontWeight: 700, borderRadius: 8, padding: "1px 4px", fontFamily: "'Sora',sans-serif" }}>{msgCount}</span>}
+        </button>
+        {/* Data/Mpesa */}
+        <button onClick={() => setModal("data")} style={{ background: "linear-gradient(135deg,#00D4A8,#006B52)", border: "none", width: 36, height: 36, borderRadius: "50%", cursor: "pointer", color: "#fff", fontSize: 14, fontWeight: 800 }}>₿</button>
+        {/* Avatar */}
+        <div onClick={() => setActiveTab("profile")} style={{ cursor: "pointer" }}>
+          <AvatarBubble user={CURRENT_USER} size={36} showOnline />
+        </div>
+      </div>
+    </nav>
+  );
+};
+
+// ── Stories ──
+const StoriesBar = ({ onViewStory }) => (
+  <div style={{ display: "flex", gap: 10, overflowX: "auto", padding: "12px 0", scrollbarWidth: "none" }}>
+    {/* Add story */}
+    <div style={{ flexShrink: 0, display: "flex", flexDirection: "column", alignItems: "center", gap: 4, cursor: "pointer" }}>
+      <div style={{
+        width: 60, height: 60, borderRadius: "50%", border: "2px dashed rgba(0,212,168,0.4)",
+        display: "flex", alignItems: "center", justifyContent: "center",
+        background: "rgba(0,212,168,0.07)", fontSize: 22, color: "#00D4A8"
+      }}>＋</div>
+      <span style={{ color: "rgba(255,255,255,0.6)", fontSize: 10, fontFamily: "'Sora',sans-serif" }}>Add Story</span>
+    </div>
+    {MOCK_STORIES.map(story => {
+      const user = getUserById(story.userId);
+      return (
+        <div key={story.id} onClick={() => onViewStory(story)} style={{ flexShrink: 0, display: "flex", flexDirection: "column", alignItems: "center", gap: 4, cursor: "pointer" }}>
+          <div style={{
+            width: 60, height: 60, borderRadius: "50%", padding: 2,
+            background: story.viewed ? "rgba(255,255,255,0.1)" : `linear-gradient(135deg, ${story.color}, #fff)`,
+          }}>
+            <AvatarBubble user={user} size={52} />
+          </div>
+          <span style={{ color: story.viewed ? "rgba(255,255,255,0.35)" : "rgba(255,255,255,0.85)", fontSize: 10, fontFamily: "'Sora',sans-serif", maxWidth: 60, textAlign: "center", overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis" }}>{user.name.split(" ")[0]}</span>
+        </div>
+      );
+    })}
+  </div>
+);
+
+// ── Create Post Box ──
+const CreatePostBox = ({ onPost }) => {
+  const [text, setText] = useState("");
+  const [showOptions, setShowOptions] = useState(false);
+  return (
+    <div style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 14, padding: 14, marginBottom: 12 }}>
+      <div style={{ display: "flex", gap: 10, marginBottom: 10 }}>
+        <AvatarBubble user={CURRENT_USER} size={42} />
+        <textarea
+          value={text} onChange={e => setText(e.target.value)}
+          placeholder="What's on your mind? Share with the world 🌍"
+          style={{
+            flex: 1, background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)",
+            borderRadius: 10, padding: "10px 14px", color: "#fff", resize: "none", height: 70,
+            fontFamily: "'Sora',sans-serif", fontSize: 13, outline: "none", lineHeight: 1.5
+          }}
+        />
+      </div>
+      <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+        {[["📷","Photo"],["🎥","Video"],["😊","Feeling"],["📍","Location"],["🎙","Live"],["📊","Poll"]].map(([icon,label]) => (
+          <button key={label} style={{ display: "flex", alignItems: "center", gap: 4, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 20, padding: "5px 10px", color: "rgba(255,255,255,0.7)", fontSize: 11, cursor: "pointer", fontFamily: "'Sora',sans-serif" }}>
+            {icon} {label}
+          </button>
+        ))}
+        <button onClick={() => { if (text.trim()) { onPost(text); setText(""); }}} style={{ marginLeft: "auto", background: "linear-gradient(135deg,#00D4A8,#006B52)", border: "none", borderRadius: 20, padding: "5px 18px", color: "#fff", fontWeight: 700, fontSize: 12, cursor: "pointer", fontFamily: "'Sora',sans-serif" }}>Post</button>
+      </div>
+    </div>
+  );
+};
+
+// ── Post Card ──
+const PostCard = ({ post, onLike, onComment }) => {
+  const user = getUserById(post.userId);
+  const [liked, setLiked] = useState(false);
+  const [localLikes, setLocalLikes] = useState(post.likes);
+  const [showReactions, setShowReactions] = useState(false);
+  const [commentText, setCommentText] = useState("");
+  const [showComments, setShowComments] = useState(false);
+  const [localComments, setLocalComments] = useState([]);
+  const reactions = ["❤️","😂","😮","😢","😡","👍"];
+
+  if (post.type === "ad") {
+    return (
+      <div style={{ background: "linear-gradient(135deg,rgba(0,212,168,0.08),rgba(6,45,100,0.3))", border: "1px solid rgba(0,212,168,0.25)", borderRadius: 14, padding: 16, marginBottom: 12 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+          <span style={{ color: "#00D4A8", fontSize: 10, fontWeight: 700, background: "rgba(0,212,168,0.15)", padding: "2px 8px", borderRadius: 10, fontFamily: "'Sora',sans-serif" }}>📢 SPONSORED</span>
+          <span style={{ color: "rgba(255,255,255,0.3)", fontSize: 11 }}>✕</span>
+        </div>
+        <div style={{ fontSize: 16, fontWeight: 800, color: "#fff", marginBottom: 6, fontFamily: "'Sora',sans-serif" }}>{post.adTitle}</div>
+        <div style={{ fontSize: 13, color: "rgba(255,255,255,0.7)", marginBottom: 12, fontFamily: "'Sora',sans-serif", lineHeight: 1.6 }}>{post.adBody}</div>
+        <button style={{ background: "linear-gradient(135deg,#00D4A8,#006B52)", border: "none", borderRadius: 20, padding: "8px 20px", color: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "'Sora',sans-serif", width: "100%" }}>{post.adCTA}</button>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 14, marginBottom: 12, overflow: "hidden" }}>
+      {/* Header */}
+      <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 14px" }}>
+        <AvatarBubble user={user} size={42} showOnline />
+        <div style={{ flex: 1 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <span style={{ color: "#fff", fontWeight: 700, fontSize: 14, fontFamily: "'Sora',sans-serif" }}>{user.name}</span>
+            {user.verified && <span style={{ color: "#00D4A8", fontSize: 12 }}>✓</span>}
+          </div>
+          <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 11, fontFamily: "'Sora',sans-serif" }}>{user.location} · {post.time}</div>
+        </div>
+        <button style={{ background: "transparent", border: "none", color: "rgba(255,255,255,0.4)", fontSize: 18, cursor: "pointer" }}>···</button>
+      </div>
+      {/* Content */}
+      <div style={{ padding: "0 14px 12px", color: "rgba(255,255,255,0.88)", fontSize: 14, fontFamily: "'Sora',sans-serif", lineHeight: 1.65 }}>{post.text}</div>
+      {/* Reaction summary */}
+      {localLikes > 0 && (
+        <div style={{ padding: "4px 14px", display: "flex", justifyContent: "space-between", borderTop: "1px solid rgba(255,255,255,0.05)" }}>
+          <span style={{ color: "rgba(255,255,255,0.4)", fontSize: 12, fontFamily: "'Sora',sans-serif" }}>❤️ {localLikes.toLocaleString()} reactions</span>
+          <span style={{ color: "rgba(255,255,255,0.4)", fontSize: 12, fontFamily: "'Sora',sans-serif" }}>{post.comments + localComments.length} comments · {post.shares} shares</span>
+        </div>
+      )}
+      {/* Action buttons */}
+      <div style={{ display: "flex", borderTop: "1px solid rgba(255,255,255,0.07)", padding: "2px 0" }}>
+        {[
+          { icon: liked ? "❤️" : "🤍", label: liked ? "Liked" : "Like", action: () => { setLiked(!liked); setLocalLikes(l => liked ? l - 1 : l + 1); } },
+          { icon: "💬", label: "Comment", action: () => setShowComments(!showComments) },
+          { icon: "↗", label: "Share", action: () => {} },
+          { icon: "🔖", label: "Save", action: () => {} },
+        ].map(btn => (
+          <button key={btn.label} onClick={btn.action} style={{
+            flex: 1, background: "transparent", border: "none", padding: "8px 4px",
+            color: btn.label === "Liked" ? "#00D4A8" : "rgba(255,255,255,0.5)",
+            cursor: "pointer", fontSize: 11, fontFamily: "'Sora',sans-serif", fontWeight: 600,
+            display: "flex", alignItems: "center", justifyContent: "center", gap: 4
+          }}>
+            <span>{btn.icon}</span> {btn.label}
+          </button>
+        ))}
+      </div>
+      {/* Comments */}
+      {showComments && (
+        <div style={{ padding: "8px 14px", borderTop: "1px solid rgba(255,255,255,0.05)" }}>
+          {localComments.map((c, i) => (
+            <div key={i} style={{ display: "flex", gap: 8, marginBottom: 8 }}>
+              <AvatarBubble user={CURRENT_USER} size={28} />
+              <div style={{ background: "rgba(255,255,255,0.06)", borderRadius: 10, padding: "6px 10px", flex: 1 }}>
+                <div style={{ color: "#fff", fontSize: 12, fontFamily: "'Sora',sans-serif", fontWeight: 700 }}>{CURRENT_USER.name}</div>
+                <div style={{ color: "rgba(255,255,255,0.8)", fontSize: 12, fontFamily: "'Sora',sans-serif" }}>{c}</div>
+              </div>
+            </div>
+          ))}
+          <div style={{ display: "flex", gap: 8 }}>
+            <AvatarBubble user={CURRENT_USER} size={28} />
+            <input value={commentText} onChange={e => setCommentText(e.target.value)}
+              onKeyDown={e => { if (e.key === "Enter" && commentText.trim()) { setLocalComments([...localComments, commentText]); setCommentText(""); }}}
+              placeholder="Write a comment…"
+              style={{ flex: 1, background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 20, padding: "6px 14px", color: "#fff", fontSize: 12, outline: "none", fontFamily: "'Sora',sans-serif" }}
+            />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ── Feed Tab ──
+const FeedTab = () => {
+  const [posts, setPosts] = useState(MOCK_POSTS);
+  const [storyModal, setStoryModal] = useState(null);
+
+  const handlePost = (text) => {
+    const newPost = { id: Date.now(), userId: 0, text, likes: 0, comments: 0, shares: 0, time: "Just now", type: "post", sponsored: false, reactions: {} };
+    setPosts([newPost, ...posts]);
+  };
+
+  return (
+    <div>
+      <StoriesBar onViewStory={s => setStoryModal(s)} />
+      {storyModal && (
+        <div onClick={() => setStoryModal(null)} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.9)", zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <div style={{ width: 320, height: 560, borderRadius: 20, background: `linear-gradient(135deg,${storyModal.color},#0A1628)`, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
+            <div style={{ fontSize: 60, marginBottom: 16 }}>✨</div>
+            <div style={{ color: "#fff", fontFamily: "'Sora',sans-serif", fontWeight: 700, fontSize: 18 }}>{getUserById(storyModal.userId).name}'s Story</div>
+            <div style={{ color: "rgba(255,255,255,0.5)", marginTop: 8, fontSize: 12, fontFamily: "'Sora',sans-serif" }}>Tap to close</div>
+          </div>
+        </div>
+      )}
+      <CreatePostBox onPost={handlePost} />
+      {posts.map(post => <PostCard key={post.id} post={post} />)}
+    </div>
+  );
+};
+
+// ── Messages Tab ──
+const MessagesTab = () => {
+  const [activeConvo, setActiveConvo] = useState(null);
+  const [inputText, setInputText] = useState("");
+  const [conversations, setConversations] = useState(
+    MOCK_MESSAGES.reduce((acc, m) => { acc[m.id] = [{ from: m.userId, text: m.lastMsg, time: m.time }]; return acc; }, {})
+  );
+
+  const sendMsg = () => {
+    if (!inputText.trim() || !activeConvo) return;
+    setConversations(prev => ({ ...prev, [activeConvo.id]: [...(prev[activeConvo.id] || []), { from: 0, text: inputText, time: "now" }] }));
+    setInputText("");
+  };
+
+  return (
+    <div style={{ display: "flex", gap: 12, height: "calc(100vh - 120px)" }}>
+      {/* Convo list */}
+      <div style={{ width: activeConvo ? "35%" : "100%", background: "rgba(255,255,255,0.03)", borderRadius: 14, border: "1px solid rgba(255,255,255,0.07)", overflow: "hidden" }}>
+        <div style={{ padding: "14px 14px 10px", borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
+          <div style={{ color: "#fff", fontWeight: 800, fontSize: 16, fontFamily: "'Sora',sans-serif" }}>Messages</div>
+        </div>
+        {MOCK_MESSAGES.map(msg => {
+          const user = getUserById(msg.userId);
+          return (
+            <div key={msg.id} onClick={() => setActiveConvo(msg)} style={{
+              display: "flex", gap: 10, padding: "12px 14px", cursor: "pointer",
+              background: activeConvo?.id === msg.id ? "rgba(0,212,168,0.08)" : "transparent",
+              borderLeft: activeConvo?.id === msg.id ? "3px solid #00D4A8" : "3px solid transparent",
+              transition: "all 0.2s"
+            }}>
+              <AvatarBubble user={user} size={44} showOnline />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ display: "flex", justifyContent: "space-between" }}>
+                  <span style={{ color: "#fff", fontWeight: 700, fontSize: 13, fontFamily: "'Sora',sans-serif" }}>{user.name}</span>
+                  <span style={{ color: "rgba(255,255,255,0.35)", fontSize: 10, fontFamily: "'Sora',sans-serif" }}>{msg.time}</span>
+                </div>
+                <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 12, fontFamily: "'Sora',sans-serif", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{msg.lastMsg}</div>
+              </div>
+              {msg.unread > 0 && <div style={{ background: "#00D4A8", color: "#0A1628", borderRadius: 10, fontSize: 10, fontWeight: 800, padding: "1px 6px", fontFamily: "'Sora',sans-serif", alignSelf: "center" }}>{msg.unread}</div>}
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Chat window */}
+      {activeConvo && (
+        <div style={{ flex: 1, background: "rgba(255,255,255,0.03)", borderRadius: 14, border: "1px solid rgba(255,255,255,0.07)", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+          {/* Chat header */}
+          <div style={{ padding: "12px 14px", borderBottom: "1px solid rgba(255,255,255,0.07)", display: "flex", alignItems: "center", gap: 10 }}>
+            <AvatarBubble user={getUserById(activeConvo.userId)} size={38} showOnline />
+            <div>
+              <div style={{ color: "#fff", fontWeight: 700, fontFamily: "'Sora',sans-serif" }}>{getUserById(activeConvo.userId).name}</div>
+              <div style={{ color: "#00D4A8", fontSize: 11, fontFamily: "'Sora',sans-serif" }}>Online</div>
+            </div>
+            <div style={{ marginLeft: "auto", display: "flex", gap: 8 }}>
+              {["📞","📹","ℹ"].map(ic => <button key={ic} style={{ background: "rgba(255,255,255,0.07)", border: "none", borderRadius: 8, width: 32, height: 32, cursor: "pointer", fontSize: 14 }}>{ic}</button>)}
+            </div>
+          </div>
+          {/* Messages */}
+          <div style={{ flex: 1, overflow: "auto", padding: 14, display: "flex", flexDirection: "column", gap: 8 }}>
+            {(conversations[activeConvo.id] || []).map((msg, i) => (
+              <div key={i} style={{ display: "flex", justifyContent: msg.from === 0 ? "flex-end" : "flex-start" }}>
+                <div style={{
+                  background: msg.from === 0 ? "linear-gradient(135deg,#00D4A8,#006B52)" : "rgba(255,255,255,0.09)",
+                  borderRadius: msg.from === 0 ? "14px 14px 4px 14px" : "14px 14px 14px 4px",
+                  padding: "8px 14px", maxWidth: "70%",
+                  color: "#fff", fontSize: 13, fontFamily: "'Sora',sans-serif"
+                }}>{msg.text}</div>
+              </div>
+            ))}
+          </div>
+          {/* Input */}
+          <div style={{ padding: "10px 14px", borderTop: "1px solid rgba(255,255,255,0.07)", display: "flex", gap: 8 }}>
+            <button style={{ background: "rgba(255,255,255,0.07)", border: "none", borderRadius: 8, width: 36, height: 36, cursor: "pointer", fontSize: 16 }}>📎</button>
+            <input value={inputText} onChange={e => setInputText(e.target.value)}
+              onKeyDown={e => e.key === "Enter" && sendMsg()}
+              placeholder="Type a message…"
+              style={{ flex: 1, background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 20, padding: "0 14px", color: "#fff", fontSize: 13, outline: "none", fontFamily: "'Sora',sans-serif" }}
+            />
+            <button onClick={sendMsg} style={{ background: "linear-gradient(135deg,#00D4A8,#006B52)", border: "none", borderRadius: "50%", width: 36, height: 36, cursor: "pointer", color: "#fff", fontSize: 16 }}>➤</button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ── Profile Tab ──
+const ProfileTab = ({ user = CURRENT_USER, currentUser = CURRENT_USER }) => {
+  const [activeSection, setActiveSection] = useState("posts");
+  const [showEditModal, setShowEditModal] = useState(false);
+
+  // Check if viewer is the profile owner
+  // Works with both mock data (id numbers) and
+  // real Supabase data (uuid strings)
+  const isOwner = user.id === currentUser.id ||
+                  user.id === 0 ||
+                  (user.email && currentUser.email &&
+                   user.email === currentUser.email);
+
+  const userPosts = MOCK_POSTS.filter(p => p.userId === user.id && p.type !== "ad");
+  const sections = ["posts", "about", "friends", "photos", "videos"];
+  return (
+    <div>
+      {/* Cover */}
+      <div style={{ height: 180, borderRadius: 14, background: `linear-gradient(135deg,${user.coverColor||"#006B52"},#0A1628)`, marginBottom: -40, position: "relative", display: "flex", alignItems: "flex-end", padding: "0 0 50px 20px" }}>
+        <div style={{ position: "absolute", bottom: -30, left: 20 }}>
+          <div style={{ width: 86, height: 86, borderRadius: "50%", background: `linear-gradient(135deg,${user.coverColor||"#006B52"},#00D4A8)`, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 800, fontSize: 28, fontFamily: "'Sora',sans-serif", border: "3px solid #0A1628" }}>{user.avatar||user.full_name?.[0]||"U"}</div>
+        </div>
+        <div style={{ marginLeft: "auto", display: "flex", gap: 6, marginBottom: 0, padding: "10px 14px" }}>
+          {/* ONLY show Edit Profile to the profile OWNER */}
+          {isOwner ? (
+            <button
+              onClick={() => setShowEditModal(true)}
+              style={{ background: "rgba(255,255,255,0.15)", border: "none", borderRadius: 8, padding: "6px 14px", color: "#fff", fontSize: 12, cursor: "pointer", fontFamily: "'Sora',sans-serif" }}>
+              ✏ Edit Profile
+            </button>
+          ) : (
+            /* Show these buttons to VISITORS only */
+            <div style={{ display: "flex", gap: 6 }}>
+              <button style={{ background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.15)", borderRadius: 8, padding: "6px 12px", color: "rgba(255,255,255,0.6)", fontSize: 12, cursor: "pointer", fontFamily: "'Sora',sans-serif" }}>
+                🚩 Report
+              </button>
+              <button style={{ background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.15)", borderRadius: 8, padding: "6px 12px", color: "rgba(255,255,255,0.6)", fontSize: 12, cursor: "pointer", fontFamily: "'Sora',sans-serif" }}>
+                ⋯ More
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+      {/* Info */}
+      <div style={{ paddingTop: 48, paddingLeft: 16 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <span style={{ color: "#fff", fontWeight: 800, fontSize: 20, fontFamily: "'Sora',sans-serif" }}>{user.name}</span>
+          {user.verified && <span style={{ background: "rgba(0,212,168,0.2)", color: "#00D4A8", borderRadius: 6, padding: "1px 6px", fontSize: 11, fontFamily: "'Sora',sans-serif" }}>✓ Verified</span>}
+        </div>
+        <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 13, fontFamily: "'Sora',sans-serif", marginTop: 2 }}>@{user.username}</div>
+        <div style={{ color: "rgba(255,255,255,0.7)", fontSize: 13, fontFamily: "'Sora',sans-serif", margin: "8px 0" }}>{user.bio}</div>
+        <div style={{ color: "rgba(255,255,255,0.45)", fontSize: 12, fontFamily: "'Sora',sans-serif", marginBottom: 12 }}>📍 {user.location}</div>
+        <div style={{ display: "flex", gap: 20 }}>
+          {[["Followers", user.followers], ["Following", user.following], ["Posts", userPosts.length]].map(([k, v]) => (
+            <div key={k} style={{ textAlign: "center" }}>
+              <div style={{ color: "#00D4A8", fontWeight: 800, fontSize: 18, fontFamily: "'Sora',sans-serif" }}>{v.toLocaleString()}</div>
+              <div style={{ color: "rgba(255,255,255,0.45)", fontSize: 11, fontFamily: "'Sora',sans-serif" }}>{k}</div>
+            </div>
+          ))}
+        </div>
+        {user.id !== 0 && (
+          <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
+            <button style={{ background: "linear-gradient(135deg,#00D4A8,#006B52)", border: "none", borderRadius: 20, padding: "8px 24px", color: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "'Sora',sans-serif" }}>Follow</button>
+            <button style={{ background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.15)", borderRadius: 20, padding: "8px 24px", color: "#fff", fontSize: 13, cursor: "pointer", fontFamily: "'Sora',sans-serif" }}>Message</button>
+          </div>
+        )}
+      </div>
+      {/* Section tabs */}
+      <div style={{ display: "flex", gap: 2, marginTop: 16, borderBottom: "1px solid rgba(255,255,255,0.07)", overflowX: "auto" }}>
+        {sections.map(s => (
+          <button key={s} onClick={() => setActiveSection(s)} style={{
+            background: "transparent", border: "none", color: activeSection === s ? "#00D4A8" : "rgba(255,255,255,0.45)",
+            padding: "8px 14px", fontSize: 12, fontFamily: "'Sora',sans-serif", fontWeight: 600, cursor: "pointer",
+            borderBottom: activeSection === s ? "2px solid #00D4A8" : "2px solid transparent", whiteSpace: "nowrap", textTransform: "capitalize"
+          }}>{s}</button>
+        ))}
+      </div>
+      {activeSection === "posts" && (
+        <div style={{ marginTop: 12 }}>
+          {userPosts.length > 0 ? userPosts.map(p => <PostCard key={p.id} post={p} />) : <div style={{ textAlign: "center", color: "rgba(255,255,255,0.3)", padding: 40, fontFamily: "'Sora',sans-serif" }}>No posts yet</div>}
+        </div>
+      )}
+      {activeSection === "about" && (
+        <div style={{ marginTop: 12, background: "rgba(255,255,255,0.04)", borderRadius: 14, padding: 16 }}>
+          {[["Bio", user.bio],["Location", user.location],["Username", "@"+user.username],["Status", user.online ? "🟢 Online" : "⚫ Offline"]].map(([k,v]) => (
+            <div key={k} style={{ padding: "10px 0", borderBottom: "1px solid rgba(255,255,255,0.05)", display: "flex", gap: 12 }}>
+              <span style={{ color: "rgba(255,255,255,0.35)", fontSize: 12, fontFamily: "'Sora',sans-serif", minWidth: 80 }}>{k}</span>
+              <span style={{ color: "rgba(255,255,255,0.8)", fontSize: 13, fontFamily: "'Sora',sans-serif" }}>{v}</span>
+            </div>
+          ))}
+        </div>
+      )}
+      {activeSection === "friends" && (
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginTop: 12 }}>
+          {MOCK_USERS.slice(0, 4).map(u => (
+            <div key={u.id} style={{ background: "rgba(255,255,255,0.04)", borderRadius: 12, padding: 12, display: "flex", alignItems: "center", gap: 10, border: "1px solid rgba(255,255,255,0.07)" }}>
+              <AvatarBubble user={u} size={36} />
+              <div>
+                <div style={{ color: "#fff", fontWeight: 600, fontSize: 12, fontFamily: "'Sora',sans-serif" }}>{u.name}</div>
+                <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 11, fontFamily: "'Sora',sans-serif" }}>{u.followers} followers</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ── Explore Tab ──
+const ExploreTab = ({ setActiveTab, setViewProfile }) => {
+  const topics = ["🔥 Trending","🌍 Africa","💼 Business","🎵 Music","📱 Tech","⚽ Sports","🎨 Art","🍲 Food","✈️ Travel","💊 Health"];
+  return (
+    <div>
+      <div style={{ color: "#fff", fontWeight: 800, fontSize: 18, fontFamily: "'Sora',sans-serif", marginBottom: 14 }}>Explore</div>
+      {/* Topics */}
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 16 }}>
+        {topics.map(t => (
+          <button key={t} style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 20, padding: "6px 12px", color: "rgba(255,255,255,0.8)", fontSize: 12, cursor: "pointer", fontFamily: "'Sora',sans-serif" }}>{t}</button>
+        ))}
+      </div>
+      {/* People You May Know */}
+      <div style={{ color: "#fff", fontWeight: 700, fontSize: 14, fontFamily: "'Sora',sans-serif", marginBottom: 10 }}>People You May Know</div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 16 }}>
+        {MOCK_USERS.map(u => (
+          <div key={u.id} onClick={() => { setViewProfile(u); setActiveTab("viewprofile"); }} style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 14, overflow: "hidden", cursor: "pointer" }}>
+            <div style={{ height: 60, background: `linear-gradient(135deg,${u.coverColor},#0A1628)` }} />
+            <div style={{ padding: "0 10px 12px", marginTop: -22 }}>
+              <AvatarBubble user={u} size={44} />
+              <div style={{ color: "#fff", fontWeight: 700, fontSize: 13, fontFamily: "'Sora',sans-serif", marginTop: 4 }}>{u.name}</div>
+              <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 11, fontFamily: "'Sora',sans-serif" }}>{u.followers.toLocaleString()} followers</div>
+              <button style={{ marginTop: 8, background: "linear-gradient(135deg,#00D4A8,#006B52)", border: "none", borderRadius: 20, padding: "5px 14px", color: "#fff", fontWeight: 700, fontSize: 11, cursor: "pointer", fontFamily: "'Sora',sans-serif", width: "100%" }}>Follow</button>
+            </div>
+          </div>
+        ))}
+      </div>
+      {/* Trending */}
+      <div style={{ color: "#fff", fontWeight: 700, fontSize: 14, fontFamily: "'Sora',sans-serif", marginBottom: 10 }}>🔥 Trending Now</div>
+      {["#AfricaTech2026","#MpesaRevolution","#GlobalConnect","#NairobiStartups","#AfricanCreatives"].map((tag, i) => (
+        <div key={tag} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", background: "rgba(255,255,255,0.03)", borderRadius: 10, marginBottom: 6, border: "1px solid rgba(255,255,255,0.06)", cursor: "pointer" }}>
+          <div style={{ color: "rgba(255,255,255,0.3)", fontFamily: "'Sora',sans-serif", fontSize: 12, width: 20 }}>#{i+1}</div>
+          <div>
+            <div style={{ color: "#00D4A8", fontWeight: 700, fontSize: 13, fontFamily: "'Sora',sans-serif" }}>{tag}</div>
+            <div style={{ color: "rgba(255,255,255,0.35)", fontSize: 11, fontFamily: "'Sora',sans-serif" }}>{(Math.random()*50+5).toFixed(1)}K posts</div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+};
+
+// ── Reels Tab ──
+const ReelsTab = () => {
+  const [currentReel, setCurrentReel] = useState(0);
+  const reels = MOCK_USERS.map((u, i) => ({ id: i, user: u, caption: ["Morning vibes 🌅✨", "Check this out 🔥💯", "Style on point 👗", "Adventure awaits 🌍", "Breaking news 📰"][i], likes: [2341, 891, 5600, 1200, 3400][i], comments: [234, 89, 567, 120, 340][i] }));
+  return (
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+      <div style={{ color: "#fff", fontWeight: 800, fontSize: 18, fontFamily: "'Sora',sans-serif", marginBottom: 14, alignSelf: "flex-start" }}>Reels</div>
+      {reels.map((reel, idx) => (
+        <div key={reel.id} style={{
+          width: "100%", maxWidth: 380, height: 500, borderRadius: 20, overflow: "hidden",
+          background: `linear-gradient(160deg,${reel.user.coverColor},#0A1628,${reel.user.coverColor}55)`,
+          position: "relative", marginBottom: 16, display: "flex", alignItems: "center", justifyContent: "center",
+          border: "1px solid rgba(255,255,255,0.07)"
+        }}>
+          <div style={{ fontSize: 80, opacity: 0.2 }}>▶</div>
+          <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, padding: 16, background: "linear-gradient(transparent,rgba(0,0,0,0.8))" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+              <AvatarBubble user={reel.user} size={36} />
+              <div>
+                <div style={{ color: "#fff", fontWeight: 700, fontSize: 13, fontFamily: "'Sora',sans-serif" }}>{reel.user.name}</div>
+                <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 11, fontFamily: "'Sora',sans-serif" }}>@{reel.user.username}</div>
+              </div>
+              <button style={{ marginLeft: "auto", background: "rgba(255,255,255,0.15)", border: "1px solid rgba(255,255,255,0.3)", borderRadius: 20, padding: "4px 14px", color: "#fff", fontSize: 12, cursor: "pointer", fontFamily: "'Sora',sans-serif" }}>Follow</button>
+            </div>
+            <div style={{ color: "rgba(255,255,255,0.9)", fontSize: 13, fontFamily: "'Sora',sans-serif", marginBottom: 8 }}>{reel.caption}</div>
+          </div>
+          {/* Side actions */}
+          <div style={{ position: "absolute", right: 12, bottom: 80, display: "flex", flexDirection: "column", gap: 16 }}>
+            {[["❤️", reel.likes], ["💬", reel.comments], ["↗", "Share"], ["🔖","Save"]].map(([icon,val]) => (
+              <div key={icon} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2, cursor: "pointer" }}>
+                <div style={{ background: "rgba(0,0,0,0.4)", borderRadius: "50%", width: 42, height: 42, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20 }}>{icon}</div>
+                <span style={{ color: "#fff", fontSize: 11, fontFamily: "'Sora',sans-serif" }}>{typeof val === "number" ? val.toLocaleString() : val}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+};
+
+// ── Marketplace Tab ──
+const MarketplaceTab = ({ setModal }) => {
+  const listings = [
+    { id: 1, title: "Handcrafted Beaded Necklace", price: "KES 1,200", seller: MOCK_USERS[0], cat: "Fashion" },
+    { id: 2, title: "Fresh Farm Produce Bundle", price: "KES 800", seller: MOCK_USERS[3], cat: "Food" },
+    { id: 3, title: "Samsung Galaxy A55 (Used)", price: "KES 22,000", seller: MOCK_USERS[1], cat: "Electronics" },
+    { id: 4, title: "Kitenge Print Fabric (6yds)", price: "KES 2,500", seller: MOCK_USERS[2], cat: "Fashion" },
+    { id: 5, title: "Laptop Stand + Accessories", price: "KES 3,200", seller: MOCK_USERS[1], cat: "Tech" },
+    { id: 6, title: "Swahili Language Course", price: "KES 5,000", seller: MOCK_USERS[4], cat: "Education" },
+  ];
+  const cats = ["All","Fashion","Food","Electronics","Tech","Education","Services"];
+  const [activeCat, setActiveCat] = useState("All");
+  const filtered = activeCat === "All" ? listings : listings.filter(l => l.cat === activeCat);
+  return (
+    <div>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+        <div style={{ color: "#fff", fontWeight: 800, fontSize: 18, fontFamily: "'Sora',sans-serif" }}>Marketplace</div>
+        <button onClick={() => setModal("advertise")} style={{ background: "linear-gradient(135deg,#00D4A8,#006B52)", border: "none", borderRadius: 20, padding: "6px 16px", color: "#fff", fontWeight: 700, fontSize: 12, cursor: "pointer", fontFamily: "'Sora',sans-serif" }}>+ Advertise</button>
+      </div>
+      <div style={{ display: "flex", gap: 6, overflowX: "auto", scrollbarWidth: "none", marginBottom: 14 }}>
+        {cats.map(c => (
+          <button key={c} onClick={() => setActiveCat(c)} style={{ flexShrink: 0, background: activeCat === c ? "linear-gradient(135deg,#00D4A8,#006B52)" : "rgba(255,255,255,0.06)", border: activeCat === c ? "none" : "1px solid rgba(255,255,255,0.1)", borderRadius: 20, padding: "5px 12px", color: "#fff", fontSize: 11, cursor: "pointer", fontFamily: "'Sora',sans-serif", fontWeight: activeCat === c ? 700 : 400 }}>{c}</button>
+        ))}
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+        {filtered.map(item => (
+          <div key={item.id} style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 14, overflow: "hidden", cursor: "pointer" }}>
+            <div style={{ height: 100, background: `linear-gradient(135deg,${item.seller.coverColor}66,rgba(0,212,168,0.1))`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 36 }}>🛍</div>
+            <div style={{ padding: "10px 10px 12px" }}>
+              <div style={{ color: "#fff", fontWeight: 700, fontSize: 12, fontFamily: "'Sora',sans-serif", marginBottom: 4, lineHeight: 1.3 }}>{item.title}</div>
+              <div style={{ color: "#00D4A8", fontWeight: 800, fontSize: 14, fontFamily: "'Sora',sans-serif", marginBottom: 6 }}>{item.price}</div>
+              <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                <AvatarBubble user={item.seller} size={18} />
+                <span style={{ color: "rgba(255,255,255,0.4)", fontSize: 10, fontFamily: "'Sora',sans-serif" }}>{item.seller.name.split(" ")[0]}</span>
+              </div>
+              <button style={{ marginTop: 8, width: "100%", background: "rgba(0,212,168,0.12)", border: "1px solid rgba(0,212,168,0.25)", borderRadius: 8, padding: "5px", color: "#00D4A8", fontSize: 11, cursor: "pointer", fontFamily: "'Sora',sans-serif", fontWeight: 700 }}>Buy via M-Pesa</button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+// ── Groups Tab ──
+const GroupsTab = () => {
+  const groups = [
+    { id: 1, name: "African Entrepreneurs Network", members: 12400, posts: "24 posts/day", emoji: "💼", color: "#00B894" },
+    { id: 2, name: "Tech in Africa", members: 8900, posts: "18 posts/day", emoji: "💻", color: "#0984E3" },
+    { id: 3, name: "Kenyan Foodies", members: 5600, posts: "30 posts/day", emoji: "🍲", color: "#E17055" },
+    { id: 4, name: "African Fashion & Style", members: 21000, posts: "45 posts/day", emoji: "👗", color: "#A855F7" },
+    { id: 5, name: "StartUp Pitches Africa", members: 3200, posts: "12 posts/day", emoji: "🚀", color: "#F59E0B" },
+    { id: 6, name: "Pan-African Culture", members: 15700, posts: "22 posts/day", emoji: "🌍", color: "#EF4444" },
+  ];
+  return (
+    <div>
+      <div style={{ color: "#fff", fontWeight: 800, fontSize: 18, fontFamily: "'Sora',sans-serif", marginBottom: 14 }}>Groups</div>
+      <button style={{ width: "100%", background: "rgba(0,212,168,0.08)", border: "2px dashed rgba(0,212,168,0.3)", borderRadius: 14, padding: "14px", color: "#00D4A8", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "'Sora',sans-serif", marginBottom: 14 }}>＋ Create New Group</button>
+      {groups.map(g => (
+        <div key={g.id} style={{ display: "flex", alignItems: "center", gap: 12, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 14, padding: "12px 14px", marginBottom: 8, cursor: "pointer" }}>
+          <div style={{ width: 50, height: 50, borderRadius: 12, background: g.color + "33", border: `2px solid ${g.color}55`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, flexShrink: 0 }}>{g.emoji}</div>
+          <div style={{ flex: 1 }}>
+            <div style={{ color: "#fff", fontWeight: 700, fontSize: 13, fontFamily: "'Sora',sans-serif" }}>{g.name}</div>
+            <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 11, fontFamily: "'Sora',sans-serif" }}>{g.members.toLocaleString()} members · {g.posts}</div>
+          </div>
+          <button style={{ background: "linear-gradient(135deg,#00D4A8,#006B52)", border: "none", borderRadius: 20, padding: "5px 12px", color: "#fff", fontSize: 11, cursor: "pointer", fontFamily: "'Sora',sans-serif", fontWeight: 700 }}>Join</button>
+        </div>
+      ))}
+    </div>
+  );
+};
+
+// ── Data / Mpesa Modal ──
+const DataModal = ({ onClose }) => {
+  const [step, setStep] = useState("plans"); // plans | mpesa | success
+  const [selectedPlan, setSelectedPlan] = useState(null);
+  const [phone, setPhone] = useState("");
+  const [pin, setPin] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const handlePay = () => {
+    setLoading(true);
+    setTimeout(() => { setLoading(false); setStep("success"); }, 2200);
+  };
+
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.85)", zIndex: 9998, display: "flex", alignItems: "flex-end", justifyContent: "center" }} onClick={e => e.target === e.currentTarget && onClose()}>
+      <div style={{ background: "#0D1F3C", borderRadius: "20px 20px 0 0", width: "100%", maxWidth: 500, maxHeight: "85vh", overflow: "auto", padding: "20px 16px 32px", border: "1px solid rgba(0,212,168,0.2)", borderBottom: "none" }}>
+        {step === "plans" && (
+          <>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+              <div style={{ color: "#fff", fontWeight: 800, fontSize: 18, fontFamily: "'Sora',sans-serif" }}>📶 Buy Data Bundle</div>
+              <button onClick={onClose} style={{ background: "rgba(255,255,255,0.1)", border: "none", borderRadius: "50%", width: 30, height: 30, cursor: "pointer", color: "#fff", fontSize: 16 }}>✕</button>
+            </div>
+            <div style={{ background: "rgba(0,212,168,0.07)", border: "1px solid rgba(0,212,168,0.2)", borderRadius: 10, padding: "10px 12px", marginBottom: 14, display: "flex", alignItems: "center", gap: 8 }}>
+              <span style={{ fontSize: 20 }}>📱</span>
+              <span style={{ color: "rgba(255,255,255,0.7)", fontSize: 12, fontFamily: "'Sora',sans-serif" }}>Pay instantly with <strong style={{ color: "#00D4A8" }}>M-Pesa</strong>. Safe & instant activation.</span>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 8 }}>
+              {DATA_PLANS.map(plan => (
+                <div key={plan.id} onClick={() => setSelectedPlan(plan)} style={{
+                  background: selectedPlan?.id === plan.id ? `${plan.color}22` : "rgba(255,255,255,0.04)",
+                  border: selectedPlan?.id === plan.id ? `2px solid ${plan.color}` : "1px solid rgba(255,255,255,0.08)",
+                  borderRadius: 12, padding: "12px 10px", cursor: "pointer", transition: "all 0.2s"
+                }}>
+                  <div style={{ color: plan.color, fontSize: 20, marginBottom: 4 }}>📶</div>
+                  <div style={{ color: "#fff", fontWeight: 700, fontSize: 13, fontFamily: "'Sora',sans-serif" }}>{plan.data}</div>
+                  <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 11, fontFamily: "'Sora',sans-serif" }}>{plan.days === 1 ? "1 Day" : `${plan.days} Days`}</div>
+                  <div style={{ color: plan.color, fontWeight: 800, fontSize: 15, fontFamily: "'Sora',sans-serif", marginTop: 4 }}>KES {plan.price}</div>
+                  <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 10, fontFamily: "'Sora',sans-serif" }}>{plan.name}</div>
+                </div>
+              ))}
+            </div>
+            <button onClick={() => selectedPlan && setStep("mpesa")} style={{ width: "100%", background: selectedPlan ? "linear-gradient(135deg,#00D4A8,#006B52)" : "rgba(255,255,255,0.1)", border: "none", borderRadius: 12, padding: "14px", color: "#fff", fontWeight: 700, fontSize: 14, cursor: selectedPlan ? "pointer" : "not-allowed", fontFamily: "'Sora',sans-serif", marginTop: 8 }}>
+              {selectedPlan ? `Continue — KES ${selectedPlan.price}` : "Select a Plan"}
+            </button>
+          </>
+        )}
+        {step === "mpesa" && selectedPlan && (
+          <>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+              <button onClick={() => setStep("plans")} style={{ background: "transparent", border: "none", color: "#00D4A8", cursor: "pointer", fontSize: 14, fontFamily: "'Sora',sans-serif" }}>← Back</button>
+              <div style={{ color: "#fff", fontWeight: 800, fontSize: 16, fontFamily: "'Sora',sans-serif" }}>M-Pesa Payment</div>
+              <button onClick={onClose} style={{ background: "rgba(255,255,255,0.1)", border: "none", borderRadius: "50%", width: 30, height: 30, cursor: "pointer", color: "#fff" }}>✕</button>
+            </div>
+            <div style={{ background: "rgba(0,212,168,0.07)", borderRadius: 12, padding: 14, marginBottom: 16, textAlign: "center" }}>
+              <div style={{ color: "#00D4A8", fontWeight: 800, fontSize: 22, fontFamily: "'Sora',sans-serif" }}>KES {selectedPlan.price}</div>
+              <div style={{ color: "rgba(255,255,255,0.6)", fontSize: 13, fontFamily: "'Sora',sans-serif" }}>{selectedPlan.data} · {selectedPlan.name}</div>
+            </div>
+            <div style={{ marginBottom: 12 }}>
+              <label style={{ color: "rgba(255,255,255,0.6)", fontSize: 12, fontFamily: "'Sora',sans-serif", display: "block", marginBottom: 6 }}>M-Pesa Phone Number</label>
+              <input value={phone} onChange={e => setPhone(e.target.value)} placeholder="e.g. 0712 345 678" style={{ width: "100%", background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.15)", borderRadius: 10, padding: "12px 14px", color: "#fff", fontSize: 14, outline: "none", fontFamily: "'Sora',sans-serif", boxSizing: "border-box" }} />
+            </div>
+            <div style={{ marginBottom: 16 }}>
+              <label style={{ color: "rgba(255,255,255,0.6)", fontSize: 12, fontFamily: "'Sora',sans-serif", display: "block", marginBottom: 6 }}>M-Pesa PIN</label>
+              <input value={pin} onChange={e => setPin(e.target.value)} type="password" placeholder="Enter PIN" style={{ width: "100%", background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.15)", borderRadius: 10, padding: "12px 14px", color: "#fff", fontSize: 14, outline: "none", fontFamily: "'Sora',sans-serif", boxSizing: "border-box" }} />
+            </div>
+            <div style={{ background: "rgba(255,193,7,0.1)", border: "1px solid rgba(255,193,7,0.25)", borderRadius: 8, padding: "8px 12px", marginBottom: 14, fontSize: 11, color: "rgba(255,255,255,0.6)", fontFamily: "'Sora',sans-serif" }}>
+              🔒 This is a demo interface. No real payment is processed.
+            </div>
+            <button onClick={handlePay} disabled={loading || !phone} style={{ width: "100%", background: loading ? "rgba(255,255,255,0.1)" : "linear-gradient(135deg,#00D4A8,#006B52)", border: "none", borderRadius: 12, padding: "14px", color: "#fff", fontWeight: 700, fontSize: 14, cursor: loading ? "wait" : "pointer", fontFamily: "'Sora',sans-serif" }}>
+              {loading ? "⏳ Processing via M-Pesa…" : "💸 Pay Now with M-Pesa"}
+            </button>
+          </>
+        )}
+        {step === "success" && (
+          <div style={{ textAlign: "center", padding: "20px 0" }}>
+            <div style={{ fontSize: 60, marginBottom: 12 }}>✅</div>
+            <div style={{ color: "#00D4A8", fontWeight: 800, fontSize: 22, fontFamily: "'Sora',sans-serif", marginBottom: 6 }}>Payment Successful!</div>
+            <div style={{ color: "rgba(255,255,255,0.7)", fontSize: 14, fontFamily: "'Sora',sans-serif", marginBottom: 6 }}>{selectedPlan?.data} data activated on {phone || "your number"}</div>
+            <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 12, fontFamily: "'Sora',sans-serif", marginBottom: 20 }}>Valid for {selectedPlan?.days} day(s)</div>
+            <button onClick={onClose} style={{ background: "linear-gradient(135deg,#00D4A8,#006B52)", border: "none", borderRadius: 12, padding: "12px 32px", color: "#fff", fontWeight: 700, fontSize: 14, cursor: "pointer", fontFamily: "'Sora',sans-serif" }}>Done</button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+// ── Advertise Modal ──
+const AdvertiseModal = ({ onClose }) => {
+  const [step, setStep] = useState("packages");
+  const [selectedPkg, setSelectedPkg] = useState(null);
+  const [adTitle, setAdTitle] = useState("");
+  const [adBody, setAdBody] = useState("");
+  const [phone, setPhone] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
+
+  const handlePay = () => {
+    setLoading(true);
+    setTimeout(() => { setLoading(false); setSuccess(true); }, 2200);
+  };
+
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.88)", zIndex: 9998, display: "flex", alignItems: "flex-end", justifyContent: "center" }} onClick={e => e.target === e.currentTarget && onClose()}>
+      <div style={{ background: "#0D1F3C", borderRadius: "20px 20px 0 0", width: "100%", maxWidth: 500, maxHeight: "90vh", overflow: "auto", padding: "20px 16px 32px", border: "1px solid rgba(0,212,168,0.2)", borderBottom: "none" }}>
+        {success ? (
+          <div style={{ textAlign: "center", padding: "20px 0" }}>
+            <div style={{ fontSize: 60, marginBottom: 12 }}>🎉</div>
+            <div style={{ color: "#00D4A8", fontWeight: 800, fontSize: 22, fontFamily: "'Sora',sans-serif", marginBottom: 6 }}>Ad Campaign Live!</div>
+            <div style={{ color: "rgba(255,255,255,0.7)", fontSize: 14, fontFamily: "'Sora',sans-serif", marginBottom: 20 }}>Your ad is now reaching {selectedPkg?.reach} people</div>
+            <button onClick={onClose} style={{ background: "linear-gradient(135deg,#00D4A8,#006B52)", border: "none", borderRadius: 12, padding: "12px 32px", color: "#fff", fontWeight: 700, fontSize: 14, cursor: "pointer", fontFamily: "'Sora',sans-serif" }}>Done</button>
+          </div>
+        ) : step === "packages" ? (
+          <>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+              <div style={{ color: "#fff", fontWeight: 800, fontSize: 18, fontFamily: "'Sora',sans-serif" }}>📢 Advertise on Global Connect</div>
+              <button onClick={onClose} style={{ background: "rgba(255,255,255,0.1)", border: "none", borderRadius: "50%", width: 30, height: 30, cursor: "pointer", color: "#fff" }}>✕</button>
+            </div>
+            <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 12, fontFamily: "'Sora',sans-serif", marginBottom: 14 }}>Reach your audience across Africa and the world. Pay via M-Pesa.</div>
+            {AD_PACKAGES.map(pkg => (
+              <div key={pkg.id} onClick={() => setSelectedPkg(pkg)} style={{
+                display: "flex", alignItems: "center", gap: 12,
+                background: selectedPkg?.id === pkg.id ? `${pkg.color}18` : "rgba(255,255,255,0.04)",
+                border: selectedPkg?.id === pkg.id ? `2px solid ${pkg.color}` : "1px solid rgba(255,255,255,0.08)",
+                borderRadius: 12, padding: "12px 14px", marginBottom: 8, cursor: "pointer"
+              }}>
+                <div style={{ width: 40, height: 40, borderRadius: 10, background: pkg.color + "33", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20 }}>📣</div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ color: "#fff", fontWeight: 700, fontSize: 13, fontFamily: "'Sora',sans-serif" }}>{pkg.name}</div>
+                  <div style={{ color: "rgba(255,255,255,0.45)", fontSize: 11, fontFamily: "'Sora',sans-serif" }}>Reach {pkg.reach} · {pkg.duration}</div>
+                </div>
+                <div style={{ color: pkg.color, fontWeight: 800, fontSize: 15, fontFamily: "'Sora',sans-serif" }}>KES {pkg.price.toLocaleString()}</div>
+              </div>
+            ))}
+            <button onClick={() => selectedPkg && setStep("create")} style={{ width: "100%", background: selectedPkg ? "linear-gradient(135deg,#00D4A8,#006B52)" : "rgba(255,255,255,0.08)", border: "none", borderRadius: 12, padding: "14px", color: "#fff", fontWeight: 700, fontSize: 14, cursor: selectedPkg ? "pointer" : "not-allowed", fontFamily: "'Sora',sans-serif", marginTop: 4 }}>
+              {selectedPkg ? "Create Your Ad →" : "Select a Package"}
+            </button>
+          </>
+        ) : (
+          <>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+              <button onClick={() => setStep("packages")} style={{ background: "transparent", border: "none", color: "#00D4A8", cursor: "pointer", fontSize: 14, fontFamily: "'Sora',sans-serif" }}>← Back</button>
+              <div style={{ color: "#fff", fontWeight: 800, fontSize: 16, fontFamily: "'Sora',sans-serif" }}>Create Your Ad</div>
+              <button onClick={onClose} style={{ background: "rgba(255,255,255,0.1)", border: "none", borderRadius: "50%", width: 30, height: 30, cursor: "pointer", color: "#fff" }}>✕</button>
+            </div>
+            <div style={{ marginBottom: 12 }}>
+              <label style={{ color: "rgba(255,255,255,0.6)", fontSize: 12, fontFamily: "'Sora',sans-serif", display: "block", marginBottom: 6 }}>Ad Title</label>
+              <input value={adTitle} onChange={e => setAdTitle(e.target.value)} placeholder="e.g. Best Shoes in Nairobi!" style={{ width: "100%", background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.15)", borderRadius: 10, padding: "10px 14px", color: "#fff", fontSize: 13, outline: "none", fontFamily: "'Sora',sans-serif", boxSizing: "border-box" }} />
+            </div>
+            <div style={{ marginBottom: 12 }}>
+              <label style={{ color: "rgba(255,255,255,0.6)", fontSize: 12, fontFamily: "'Sora',sans-serif", display: "block", marginBottom: 6 }}>Ad Description</label>
+              <textarea value={adBody} onChange={e => setAdBody(e.target.value)} placeholder="Describe your product or service…" style={{ width: "100%", background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.15)", borderRadius: 10, padding: "10px 14px", color: "#fff", fontSize: 13, outline: "none", fontFamily: "'Sora',sans-serif", height: 80, resize: "none", boxSizing: "border-box" }} />
+            </div>
+            <div style={{ marginBottom: 14 }}>
+              <label style={{ color: "rgba(255,255,255,0.6)", fontSize: 12, fontFamily: "'Sora',sans-serif", display: "block", marginBottom: 6 }}>M-Pesa Number (Payment)</label>
+              <input value={phone} onChange={e => setPhone(e.target.value)} placeholder="0712 345 678" style={{ width: "100%", background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.15)", borderRadius: 10, padding: "10px 14px", color: "#fff", fontSize: 13, outline: "none", fontFamily: "'Sora',sans-serif", boxSizing: "border-box" }} />
+            </div>
+            <div style={{ background: "rgba(0,212,168,0.08)", border: "1px solid rgba(0,212,168,0.2)", borderRadius: 10, padding: "10px 12px", marginBottom: 14, display: "flex", justifyContent: "space-between" }}>
+              <span style={{ color: "rgba(255,255,255,0.6)", fontSize: 12, fontFamily: "'Sora',sans-serif" }}>{selectedPkg?.name}</span>
+              <span style={{ color: "#00D4A8", fontWeight: 800, fontSize: 14, fontFamily: "'Sora',sans-serif" }}>KES {selectedPkg?.price.toLocaleString()}</span>
+            </div>
+            <button onClick={handlePay} disabled={loading} style={{ width: "100%", background: loading ? "rgba(255,255,255,0.1)" : "linear-gradient(135deg,#00D4A8,#006B52)", border: "none", borderRadius: 12, padding: "14px", color: "#fff", fontWeight: 700, fontSize: 14, cursor: loading ? "wait" : "pointer", fontFamily: "'Sora',sans-serif" }}>
+              {loading ? "⏳ Processing Payment…" : "💸 Pay & Launch Ad"}
+            </button>
+          </>
+        )}
+      </div>
+    </div>
+  );
+};
+
+// ── Notifications Modal ──
+const NotificationsModal = ({ onClose }) => (
+  <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", zIndex: 9998, display: "flex", alignItems: "flex-start", justifyContent: "flex-end" }} onClick={e => e.target === e.currentTarget && onClose()}>
+    <div style={{ background: "#0D1F3C", borderRadius: "0 0 0 20px", width: 320, maxHeight: "80vh", overflow: "auto", padding: "16px", border: "1px solid rgba(0,212,168,0.2)", marginTop: 56 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+        <div style={{ color: "#fff", fontWeight: 800, fontSize: 16, fontFamily: "'Sora',sans-serif" }}>Notifications</div>
+        <button onClick={onClose} style={{ background: "transparent", border: "none", color: "rgba(255,255,255,0.5)", cursor: "pointer", fontSize: 16 }}>✕</button>
+      </div>
+      {NOTIFICATIONS.map(n => (
+        <div key={n.id} style={{ display: "flex", gap: 10, padding: "10px 0", borderBottom: "1px solid rgba(255,255,255,0.05)", background: n.read ? "transparent" : "rgba(0,212,168,0.04)" }}>
+          <div style={{ width: 36, height: 36, borderRadius: "50%", background: "rgba(255,255,255,0.08)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0 }}>{n.icon}</div>
+          <div>
+            <div style={{ color: n.read ? "rgba(255,255,255,0.6)" : "#fff", fontSize: 13, fontFamily: "'Sora',sans-serif", lineHeight: 1.4 }}>{n.text}</div>
+            <div style={{ color: n.read ? "rgba(255,255,255,0.25)" : "#00D4A8", fontSize: 11, fontFamily: "'Sora',sans-serif", marginTop: 2 }}>{n.time} ago</div>
+          </div>
+          {!n.read && <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#00D4A8", flexShrink: 0, alignSelf: "center", marginLeft: "auto" }} />}
+        </div>
+      ))}
+    </div>
+  </div>
+);
+
+// ── Sidebar (Desktop) ──
+const LeftSidebar = ({ setActiveTab, activeTab, setModal }) => {
+  const navItems = [
+    { id: "feed", icon: "⊞", label: "News Feed" },
+    { id: "explore", icon: "🔍", label: "Explore" },
+    { id: "reels", icon: "▶", label: "Reels" },
+    { id: "messages", icon: "💬", label: "Messages" },
+    { id: "groups", icon: "👥", label: "Groups" },
+    { id: "marketplace", icon: "🛒", label: "Marketplace" },
+    { id: "profile", icon: "👤", label: "Profile" },
+  ];
+  return (
+    <div style={{ width: 220, flexShrink: 0, position: "sticky", top: 68, height: "calc(100vh - 80px)", display: "flex", flexDirection: "column", gap: 4 }}>
+      <div onClick={() => setActiveTab("profile")} style={{ display: "flex", gap: 10, alignItems: "center", padding: "10px 10px", borderRadius: 10, cursor: "pointer", marginBottom: 6, background: "rgba(255,255,255,0.04)" }}>
+        <AvatarBubble user={CURRENT_USER} size={38} showOnline />
+        <div>
+          <div style={{ color: "#fff", fontWeight: 700, fontSize: 13, fontFamily: "'Sora',sans-serif" }}>{CURRENT_USER.name}</div>
+          <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 11, fontFamily: "'Sora',sans-serif" }}>@{CURRENT_USER.username}</div>
+        </div>
+      </div>
+      {navItems.map(item => (
+        <button key={item.id} onClick={() => setActiveTab(item.id)} style={{
+          display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderRadius: 10,
+          background: activeTab === item.id ? "rgba(0,212,168,0.12)" : "transparent",
+          border: "none", color: activeTab === item.id ? "#00D4A8" : "rgba(255,255,255,0.65)",
+          fontFamily: "'Sora',sans-serif", fontWeight: activeTab === item.id ? 700 : 500, fontSize: 13,
+          cursor: "pointer", textAlign: "left", width: "100%", transition: "all 0.15s"
+        }}>
+          <span style={{ fontSize: 18, width: 24 }}>{item.icon}</span> {item.label}
+        </button>
+      ))}
+      <div style={{ borderTop: "1px solid rgba(255,255,255,0.07)", marginTop: 8, paddingTop: 10 }}>
+        <button onClick={() => setModal("data")} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderRadius: 10, background: "rgba(0,212,168,0.07)", border: "1px solid rgba(0,212,168,0.2)", color: "#00D4A8", fontFamily: "'Sora',sans-serif", fontWeight: 700, fontSize: 13, cursor: "pointer", width: "100%", marginBottom: 6 }}>
+          <span style={{ fontSize: 18, width: 24 }}>📶</span> Buy Data
+        </button>
+        <button onClick={() => setModal("advertise")} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderRadius: 10, background: "rgba(255,193,7,0.07)", border: "1px solid rgba(255,193,7,0.2)", color: "#F59E0B", fontFamily: "'Sora',sans-serif", fontWeight: 700, fontSize: 13, cursor: "pointer", width: "100%" }}>
+          <span style={{ fontSize: 18, width: 24 }}>📢</span> Advertise
+        </button>
+      </div>
+    </div>
+  );
+};
+
+const RightSidebar = ({ setActiveTab, setViewProfile }) => (
+  <div style={{ width: 240, flexShrink: 0, position: "sticky", top: 68, height: "calc(100vh - 80px)", overflow: "auto" }}>
+    <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 11, fontFamily: "'Sora',sans-serif", fontWeight: 700, marginBottom: 8, textTransform: "uppercase", letterSpacing: 1 }}>Online Friends</div>
+    {MOCK_USERS.filter(u => u.online).map(u => (
+      <div key={u.id} onClick={() => { setViewProfile(u); setActiveTab("viewprofile"); }} style={{ display: "flex", gap: 8, alignItems: "center", padding: "6px 0", cursor: "pointer" }}>
+        <AvatarBubble user={u} size={32} showOnline />
+        <div style={{ flex: 1 }}>
+          <div style={{ color: "#fff", fontSize: 12, fontFamily: "'Sora',sans-serif", fontWeight: 600 }}>{u.name}</div>
+          <div style={{ color: "rgba(255,255,255,0.35)", fontSize: 10, fontFamily: "'Sora',sans-serif" }}>{u.location}</div>
+        </div>
+      </div>
+    ))}
+    <div style={{ borderTop: "1px solid rgba(255,255,255,0.07)", marginTop: 14, paddingTop: 12, color: "rgba(255,255,255,0.5)", fontSize: 11, fontFamily: "'Sora',sans-serif", fontWeight: 700, marginBottom: 8, textTransform: "uppercase", letterSpacing: 1 }}>Suggested Pages</div>
+    {["Global Business Hub","African Creators","Tech Startups Africa"].map((page, i) => (
+      <div key={page} style={{ display: "flex", gap: 8, alignItems: "center", padding: "6px 0" }}>
+        <div style={{ width: 32, height: 32, borderRadius: 8, background: ["#00B89422","#0984E322","#6C5CE722"][i], border: `1px solid ${["#00B894","#0984E3","#6C5CE7"][i]}44`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14 }}>{"💼🌍🚀"[i]}</div>
+        <div style={{ flex: 1 }}>
+          <div style={{ color: "#fff", fontSize: 11, fontFamily: "'Sora',sans-serif", fontWeight: 600 }}>{page}</div>
+          <div style={{ color: "rgba(255,255,255,0.35)", fontSize: 10, fontFamily: "'Sora',sans-serif" }}>Page</div>
+        </div>
+        <button style={{ background: "rgba(0,212,168,0.1)", border: "1px solid rgba(0,212,168,0.25)", borderRadius: 6, padding: "3px 8px", color: "#00D4A8", fontSize: 10, cursor: "pointer", fontFamily: "'Sora',sans-serif" }}>Like</button>
+      </div>
+    ))}
+  </div>
+);
+
+// ─── MAIN APP ──────────────────────────────────────────────────────────────────
+export default function GlobalConnect() {
+  const [activeTab, setActiveTab] = useState("feed");
+  const [modal, setModal] = useState(null);
+  const [viewProfile, setViewProfile] = useState(null);
+  const notifCount = NOTIFICATIONS.filter(n => !n.read).length;
+  const msgCount = MOCK_MESSAGES.reduce((a, m) => a + m.unread, 0);
+
+  const renderMain = () => {
+    switch (activeTab) {
+      case "feed": return <FeedTab />;
+      case "explore": return <ExploreTab setActiveTab={setActiveTab} setViewProfile={setViewProfile} />;
+      case "reels": return <ReelsTab />;
+      case "messages": return <MessagesTab />;
+      case "groups": return <GroupsTab />;
+      case "marketplace": return <MarketplaceTab setModal={setModal} />;
+      case "profile": return <ProfileTab user={CURRENT_USER} currentUser={CURRENT_USER} />;
+      case "viewprofile": return <ProfileTab user={viewProfile || CURRENT_USER} currentUser={CURRENT_USER} />;
+      default: return <FeedTab />;
+    }
+  };
+
+  return (
+    <>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&display=swap');
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { background: #0A1628; }
+        ::-webkit-scrollbar { width: 4px; height: 4px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(0,212,168,0.3); border-radius: 4px; }
+        input::placeholder, textarea::placeholder { color: rgba(255,255,255,0.3); }
+      `}</style>
+      <div style={{ background: "#0A1628", minHeight: "100vh", fontFamily: "'Sora',sans-serif" }}>
+        <Navbar activeTab={activeTab} setActiveTab={setActiveTab} notifCount={notifCount} msgCount={msgCount} setModal={setModal} />
+
+        {/* Bottom nav (mobile) */}
+        <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, background: "rgba(8,20,40,0.97)", backdropFilter: "blur(20px)", borderTop: "1px solid rgba(0,212,168,0.12)", display: "flex", zIndex: 999, padding: "6px 0" }}>
+          {[["⊞","feed"],["🔍","explore"],["▶","reels"],["🛒","marketplace"],["👤","profile"]].map(([icon,tab]) => (
+            <button key={tab} onClick={() => setActiveTab(tab)} style={{ flex: 1, background: "transparent", border: "none", color: activeTab === tab ? "#00D4A8" : "rgba(255,255,255,0.4)", cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 2, padding: "4px 0" }}>
+              <span style={{ fontSize: 20 }}>{icon}</span>
+              <span style={{ fontSize: 9, fontFamily: "'Sora',sans-serif", textTransform: "capitalize" }}>{tab}</span>
+            </button>
+          ))}
+        </div>
+
+        {/* Main layout */}
+        <div style={{ maxWidth: 1100, margin: "0 auto", padding: "68px 12px 70px", display: "flex", gap: 16 }}>
+          {/* Left sidebar — desktop only */}
+          <div style={{ display: window.innerWidth >= 900 ? "block" : "none" }}>
+            <LeftSidebar setActiveTab={setActiveTab} activeTab={activeTab} setModal={setModal} />
+          </div>
+
+          {/* Main content */}
+          <div style={{ flex: 1, minWidth: 0 }}>
+            {renderMain()}
+          </div>
+
+          {/* Right sidebar — desktop only */}
+          <div style={{ display: window.innerWidth >= 1024 ? "block" : "none" }}>
+            <RightSidebar setActiveTab={setActiveTab} setViewProfile={setViewProfile} />
+          </div>
+        </div>
+
+        {/* Modals */}
+        {modal === "data" && <DataModal onClose={() => setModal(null)} />}
+        {modal === "advertise" && <AdvertiseModal onClose={() => setModal(null)} />}
+        {modal === "notifications" && <NotificationsModal onClose={() => setModal(null)} />}
+      </div>
+    </>
+  );
+}
