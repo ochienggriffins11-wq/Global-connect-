@@ -25,7 +25,7 @@
 
 // ── YouTube Data API v3 ───────────────────────────────────────────
 // Get free key at: console.cloud.google.com
-export const YOUTUBE_API_KEY = "AIzaSyAMsSEsNUL9xZLj_0p1dydRrndWOf_7Y34";
+export const YOUTUBE_API_KEY = import.meta.env.VITE_YOUTUBE_API_KEY;
 export const YOUTUBE_BASE    = "https://www.googleapis.com/youtube/v3";
 
 // Search African content on YouTube
