@@ -82,7 +82,7 @@ export const youtubeAPI = {
 
 // ── News API ──────────────────────────────────────────────────────
 // Get free key at: newsapi.org
-export const NEWS_API_KEY  = "801667a8e3194f919065fd3f09b112c5";
+export const NEWS_API_KEY = import.meta.env.VITE_NEWS_API_KEY;
 export const NEWS_BASE     = "https://newsapi.org/v2";
 
 export const newsAPI = {
